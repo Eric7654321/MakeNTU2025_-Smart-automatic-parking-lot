@@ -1,0 +1,41 @@
+server:
+  port: 8079
+
+spring:
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  datasource:
+    driver-class-name: ${makentu15.datasource.driver-class-name}
+    url: jdbc:mysql://${makentu15.datasource.host}:${makentu15.datasource.port}/${makentu15.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${makentu15.datasource.username}
+    password: ${makentu15.datasource.password}
+#  redis:
+#    host: ${makentu15.redis.host}
+#    port: ${makentu15.redis.port}
+#    database: ${makentu15.redis.database}
+
+mybatis:
+  #mapper配置文件
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.makentu15.entity
+  configuration:
+    #开启驼峰命名
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com:
+      makentu15:
+        mapper: debug
+        service: info
+        controller: info
+
+makentu15:
+  jwt:
+    admin-secret-key: bruh
+    admin-ttl: 7200000000
+    admin-token-name: token
+  gemini:
+    api-key: AIzaSyDxdXdO7o2eWLclcT9tI8UAtdEa7cN5wd4

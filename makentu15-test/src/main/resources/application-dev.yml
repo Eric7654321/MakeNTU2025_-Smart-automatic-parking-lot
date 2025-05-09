@@ -1,0 +1,14 @@
+makentu15:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: localhost
+    port: 3306
+    database: sky_take_out
+    username: root
+    password: 1234
+#  redis:
+#    host: localhost
+#    port: 6379
+#    database: 0
+#google:
+#  api-key: AIzaSyDxdXdO7o2eWLclcT9tI8UAtdEa7cN5wd4
