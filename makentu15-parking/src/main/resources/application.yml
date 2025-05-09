@@ -6,11 +6,13 @@ spring:
     active: dev
   main:
     allow-circular-references: true
-  datasource:
-#    driver-class-name: ${makentu15.datasource.driver-class-name}
-    url: jdbc:mysql://project3server.mysql.database.azure.com:3306/makentu2025?useSSL=true&requireSSL=true&verifyServerCertificate=true
-    username: Lu
-    password: Eric7654321
+datasource:
+    driver-class-name: ${your_database}
+    host: ${your_host}
+    port: ${your_port}
+    database: ${your_databases_name}
+    username: ${your_user_name}
+    password: ${your_password}
 #  redis:
 #    host: ${makentu15.redis.host}
 #    port: ${makentu15.redis.port}
