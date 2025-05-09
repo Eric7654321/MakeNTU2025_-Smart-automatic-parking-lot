@@ -1,12 +1,11 @@
 makentu15:
   datasource:
-    driver-class-name: jdbc:mysql://project3server.mysql.database.azure.com:3306/np_project3?useSSL=true&requireSSL=true&verifyServerCertificate=true
-    host: localhost
-    port: 3306
-    database: parkingspace
-    username: root
-    password: 1234
-#  redis:
+      driver-class-name: ${your_database}
+      host: ${your_host}
+      port: ${your_port}
+      database: ${your_databases_name}
+      username: ${your_user_name}
+      password: ${your_password}
 #    host: localhost
 #    port: 6379
 #    database: 0
