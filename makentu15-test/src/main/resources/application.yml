@@ -38,4 +38,4 @@ makentu15:
     admin-ttl: 7200000000
     admin-token-name: token
   gemini:
-    api-key: AIzaSyDxdXdO7o2eWLclcT9tI8UAtdEa7cN5wd4
+    api-key: ${your_API_key}
