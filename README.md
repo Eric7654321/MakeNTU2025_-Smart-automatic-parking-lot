@@ -35,23 +35,27 @@ sequenceDiagram
 
     U->>P: POST /park/park {carId, password}
     P->>DB: 掃 parkingspace，取第一個 is_parked=0 且 scheduled≠1 的格子
-    P->>DB: 標記 is_parked=1, scheduled=1
+    P->>DB: 預約：scheduled=1，寫入 car_id / password（is_parked 不動）
     P->>T: POST /task/add {option:"P", id, serial}
     T->>DB: 驗證合法後寫入 request
     P-->>U: Result{code:1, data: 車位 id}
     HW->>DB: 讀 request 取得待辦任務
     HW->>T: GET /task/clear/{serial}
-    T->>DB: 刪除該筆 request，並把該車位 scheduled 歸 0
+    T->>DB: 刪除該筆 request，is_parked=1、scheduled=0
 ```
 
 取車（`POST /park/take`）走同一條路，差別在 `option` 是 `"T"`，
-而車位是用 `carId` + `password` 比對出來的。
+車位是用 `carId` + `password` 比對出來的，而銷單時是把 `is_parked` 歸 0、憑證清空。
+
+**`parking` 只做預約，不宣稱車已經到位。** `is_parked` 代表「車實際在格子裡」，
+只有機構端回報任務完成（`/task/clear/{serial}`）時才會變；`scheduled` 代表「有一張還沒做完的
+任務單指向這格」，它才是開單當下就設的那個旗標。兩者分開，任務服務的合法性檢查才驗得到東西——
+開單前就把 `is_parked` 寫成 1，檢查看到的會是呼叫方自己剛造成的狀態。
+
+任務送不出去時，`parking` 會把剛才的預約收回來，否則那個格子誰都用不到，而且沒有東西會來清它。
 
 **車位配置目前是 first-fit**：`ParkingServiceImpl.parkCar()` 依序掃過所有車位，
 取第一個未占用且未被排定的。沒有距離或分區的權重。
-
-**`parking` 呼叫 `task` 的位址寫死在 `ParkingServiceImpl.submitTaskToMissionSystem()`**
-（`http://localhost:8082/task/add`）。兩個服務要在同一台機器上，且 `task` 必須佔用 8082。
 
 ## 資料模型
 
@@ -62,9 +66,9 @@ schema 名稱 `makentu2025`，兩張表。程式沒有附建表腳本，欄位�
 | 欄位 | 意義 |
 |---|---|
 | `id` | 車位編號，任務單就是用它指名要搬到哪 |
-| `is_parked` | 這格現在有沒有車 |
+| `is_parked` | 車**實際上**在不在格子裡。開單時不動，銷單時才變 |
 | `scheduled` | 有沒有一張還沒做完的任務指向這格。**防止同一格被重複派工**，銷單時歸 0 |
-| `car_id` / `password` | 取車時的憑證，兩個都要對得上 |
+| `car_id` / `password` | 取車時的憑證，兩個都要對得上。停車預約時寫入，取車完成時清掉 |
 | `update_time` | 最後一次異動 |
 
 **`request`** — 待辦任務佇列，空的代表機構端沒事做。
@@ -95,12 +99,14 @@ schema 名稱 `makentu2025`，兩張表。程式沒有附建表腳本，欄位�
 | 方法 | 路徑 | 送什麼 | 回什麼 |
 |---|---|---|---|
 | POST | `/task/add` | `{"option":"P","id":3,"serial":1234}` | 建立的任務 |
-| GET | `/task/clear/{serial}` | — | 銷單，並把該車位的 `scheduled` 歸 0 |
+| GET | `/task/clear/{serial}` | — | 銷單，並把車位改成任務完成後該有的樣子 |
 | GET | `/task/show` | — | 目前所有待辦任務 |
 
-`/task/add` 會先驗證：車位 id 存在嗎、`option` 是不是 `P`/`T`、
-停車的目標是不是空的、取車的目標是不是有車。不合法就退回，錯誤字串在
-`TaskFailReason`。
+`/task/add` 會先驗證：車位 id 存在嗎、`option` 是不是 `P`/`T`、有沒有帶流水號、
+停車的目標是不是空的、取車的目標是不是有車。不合法就退回，錯誤字串在 `TaskFailReason`。
+
+**流水號是必填的**：它是之後銷單唯一的依據，缺了就會變成一張沒人關得掉的任務單，
+指向的車位也會一直掛著預約。
 
 ## 跑起來
 
@@ -135,8 +141,7 @@ curl localhost:8082/task/show
 
 每個服務兩個檔：`application.yml` 放不敏感的東西（埠、mybatis、log），
 `application-dev.yml` 放連線資訊。連線資訊寫成 `makentu15.datasource.*`，
-再由 `application.yml` 組成 `spring.datasource.url` ——
-**`makentu15-test/src/main/resources/application.yml` 是這個組法的參考範例。**
+再由 `application.yml` 組成 `spring.datasource.url`。三個服務的寫法一致。
 
 ```yaml
 # application-dev.yml
@@ -149,6 +154,9 @@ makentu15:
     username: <你的帳號>
     password: <你的密碼>
 ```
+
+`parking` 還多一項 `makentu15.task.url`（預設 `http://localhost:8082`）——
+兩個服務不在同一台機器時改這裡。
 
 **密碼與 API key 不進版控。** 版控裡的值一律是 `${your_password}` 這類佔位字串；
 實際的值放在本機未追蹤的覆寫檔，或走環境變數。已經推上去的機密要當成外洩處理——

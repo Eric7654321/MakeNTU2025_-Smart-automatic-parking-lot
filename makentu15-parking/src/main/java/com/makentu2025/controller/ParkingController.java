@@ -5,7 +5,6 @@ import com.makentu2025.entity.ParkingSpace;
 import com.makentu2025.result.Result;
 import com.makentu2025.service.ParkingService;
 import lombok.extern.slf4j.Slf4j;
-import lombok.extern.slf4j.XSlf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,7 +35,6 @@ public class ParkingController {
     @GetMapping("/all")
     public Result getAll() {
         List<ParkingSpace> list = parkingService.showAll();
-        System.out.println(list);
         return Result.success(list);
     }
 }
