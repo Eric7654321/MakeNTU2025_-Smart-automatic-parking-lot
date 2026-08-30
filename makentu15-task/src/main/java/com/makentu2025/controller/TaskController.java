@@ -1,12 +1,10 @@
 package com.makentu2025.controller;
 
-import com.makentu2025.entity.ParkingSpace;
 import com.makentu2025.entity.Request;
 import com.makentu2025.result.Result;
 import com.makentu2025.service.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,12 +18,12 @@ public class TaskController {
 
     @PostMapping("/add")
     public Result addTask(@RequestBody Request request) {
-        Result taskLegal = taskService.checkLegal(request);
-        if (taskLegal.getCode() == 0) {
-            taskService.insertTask(request);
-        } else {
-            return Result.error(taskLegal.getMsg());
+        Result legality = taskService.checkLegal(request);
+        if (!legality.succeeded()) {
+            return Result.error(legality.getMsg());
         }
+
+        taskService.insertTask(request);
         return Result.success(request);
     }
 
@@ -35,9 +33,10 @@ public class TaskController {
         taskService.clearTask(serial);
         return Result.success();
     }
+
     @GetMapping("/show")
     public Result showTasks() {
-        List<Request> requests =  taskService.showAll();
+        List<Request> requests = taskService.showAll();
         return Result.success(requests);
     }
 }

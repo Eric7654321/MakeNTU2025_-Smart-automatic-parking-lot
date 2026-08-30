@@ -27,8 +27,9 @@ public class TaskServiceImpl implements TaskService {
         Integer spaceId = request.getId();
         String option = request.getOption();
 
-        // 檢查 option 與 id 是否為 null
-        if (spaceId == null || option == null || option.isEmpty()) {
+        // 檢查 option、id 與流水號是否為 null。
+        // 流水號要在這裡擋下來：它是之後銷單唯一的依據，缺了就變成一張沒人關得掉的單。
+        if (spaceId == null || option == null || option.isEmpty() || request.getSerial() == null) {
             return Result.error(TaskFailReason.SYSTEM_ERROR);
         }
 
@@ -44,13 +45,13 @@ public class TaskServiceImpl implements TaskService {
         ParkingSpace space = spaceOpt.get();
 
         switch (option) {
-            case "P": // 停車
+            case Request.PARK: // 停車
                 if (space.isParked()) {
                     return Result.error(TaskFailReason.SPACE_OCCUPIED);
                 }
                 break;
 
-            case "T": // 取車
+            case Request.TAKE: // 取車
                 if (!space.isParked()) {
                     return Result.error(TaskFailReason.CAR_NOT_FOUND);
                 }
@@ -65,19 +66,26 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void insertTask(Request request) {
-        request.setSerial(request.getSerial() + 1);
-        request.setUpdateTime(LocalDateTime.now());
-        request.setSerial(request.getSerial());
         request.setUpdateTime(LocalDateTime.now());
         taskMapper.insertTask(request);
-        //taskMapper.unSchedule(request.getId());
     }
 
     @Override
     public void clearTask(Integer serial) {
-        Integer id = taskMapper.searchBySerial(serial);
+        Request task = taskMapper.findBySerial(serial);
+        if (task == null) {
+            log.warn("找不到流水號 {} 的任務，可能已經銷過單", serial);
+            return;
+        }
+
         taskMapper.clearTask(serial);
-        taskMapper.unSchedule(id);
+
+        // 車位的實際狀態在任務「做完」時才變，不是在開單時——開單時車還在路上。
+        if (Request.PARK.equals(task.getOption())) {
+            taskMapper.completePark(task.getId());
+        } else if (Request.TAKE.equals(task.getOption())) {
+            taskMapper.completeTake(task.getId());
+        }
     }
 
     @Override
