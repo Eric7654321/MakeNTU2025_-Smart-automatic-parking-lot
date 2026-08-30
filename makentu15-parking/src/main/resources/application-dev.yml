@@ -6,9 +6,3 @@ makentu15:
     database: ${your_databases_name}
     username: ${your_user_name}
     password: ${your_password}
-#  redis:
-#    host: localhost
-#    port: 6379
-#    database: 0
-#google:
-#  api-key: AIzaSyDxdXdO7o2eWLclcT9tI8UAtdEa7cN5wd4

@@ -7,19 +7,17 @@ spring:
   main:
     allow-circular-references: true
   datasource:
-    driver-class-name: ${your_database}
-    host: ${your_host}
-    port: ${your_port}
-    database: ${your_databases_name}
-    username: ${your_user_name}
-    password: ${your_password}
+    driver-class-name: ${makentu15.datasource.driver-class-name}
+    url: jdbc:mysql://${makentu15.datasource.host}:${makentu15.datasource.port}/${makentu15.datasource.database}?serverTimezone=Asia/Taipei&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${makentu15.datasource.username}
+    password: ${makentu15.datasource.password}
 
 mybatis:
-  #mapper配置文件
+  # mapper 設定檔
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.makentu15.entity
   configuration:
-    #开启驼峰命名
+    # 開啟駝峰命名對應
     map-underscore-to-camel-case: true
 
 logging:
@@ -29,11 +27,3 @@ logging:
         mapper: debug
         service: info
         controller: info
-
-makentu15:
-  jwt:
-    admin-secret-key: bruh
-    admin-ttl: 7200000000
-    admin-token-name: token
-  gemini:
-    api-key: AIzaSyDxdXdO7o2eWLclcT9tI8UAtdEa7cN5wd4
