@@ -249,6 +249,7 @@ void loop() {
   } else {
     Serial.printf("HTTP GET failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();  // 取完就關，下面的 return 路徑才不會漏掉
   // 如果有需求 解讀需求 看看有幾個需求 
   // 解析 JSON
   StaticJsonDocument<1024> doc;
@@ -292,20 +293,20 @@ void loop() {
       Serial.print("Unknown option: " + request.option);
     }
     HTTPClient httpback;
-    httpback.begin("http://<task-service-host>:8082/task/clear/" + request.serial); //請求網址
+    // 左邊要先是 String：字串常值 + int 是指標位移，不是串接
+    httpback.begin(String("http://<task-service-host>:8082/task/clear/") + request.serial); //請求網址
     httpCode = httpback.GET();
     if (httpCode > 0) {
       Serial.printf("HTTP GET... code: %d\n", httpCode);
-      payload = http.getString();
+      payload = httpback.getString();
       Serial.println("Response:");
       Serial.println(payload);  // <-- 確認是否真的為空字串
     } else {
-      Serial.printf("HTTP GET failed, error: %s\n", http.errorToString(httpCode).c_str());
+      Serial.printf("HTTP GET failed, error: %s\n", httpback.errorToString(httpCode).c_str());
     }
+    httpback.end();  // 清除任務後
   }
   // 每次行動完之後 自動回到原位 回傳行動成功的request給rpi
   requests.clear();
-  http.end();      // GET show 任務後
-  httpback.end();  // 清除任務後
   delay(5000);
 }
