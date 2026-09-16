@@ -1,14 +1,18 @@
-# MakeNTU 2025 — 智慧自動停車場（後端）
+# MakeNTU 2025 — 智慧自動停車場
 
-自動代客泊車系統的後端。使用者送出「停車」或「取車」請求，系統決定用哪個車位，
+自動代客泊車系統。使用者送出「停車」或「取車」請求，系統決定用哪個車位，
 並把一張搬運任務交給機構端執行。MakeNTU 2025 企業獎第三名。
 
 ## 這個 repo 的範圍
 
-**只有後端。** Spring Boot multi-module，Java + MySQL。
+| 目錄 | 是什麼 |
+|---|---|
+| `makentu15-*` | 後端。Spring Boot multi-module，Java + MySQL |
+| `firmware/` | 機構端。ESP32 搬運車韌體（Arduino 框架），見下方「機構端」 |
+| `prototype/` | 比賽初期用 C++ 寫的車位配置草稿，和後端 `parkCar()` 一樣是 first-fit |
 
-機構端（Arduino / ESP32 韌體）與語音辨識那一段**不在這個 repo**。
-後端與它們的唯一介面是下面的 `request` 資料表：機構端輪詢待辦任務、做完後呼叫
+語音辨識那一段**不在這個 repo**。
+後端與機構端的唯一介面是下面的 `request` 資料表：機構端透過 `GET /task/show` 輪詢待辦任務、做完後呼叫
 `GET /task/clear/{serial}` 銷單。後端不直接控制任何硬體。
 
 ## 架構
@@ -39,7 +43,7 @@ sequenceDiagram
     P->>T: POST /task/add {option:"P", id, serial}
     T->>DB: 驗證合法後寫入 request
     P-->>U: Result{code:1, data: 車位 id}
-    HW->>DB: 讀 request 取得待辦任務
+    HW->>T: GET /task/show 取得待辦任務
     HW->>T: GET /task/clear/{serial}
     T->>DB: 刪除該筆 request，is_parked=1、scheduled=0
 ```
@@ -56,6 +60,41 @@ sequenceDiagram
 
 **車位配置目前是 first-fit**：`ParkingServiceImpl.parkCar()` 依序掃過所有車位，
 取第一個未占用且未被排定的。沒有距離或分區的權重。
+
+## 機構端（ESP32 韌體）
+
+`firmware/car_demo/car_demo.ino` 是比賽 demo 用的搬運車程式。車子沿主車道前進，
+靠地面黑點數出目標車格，轉進去放車或抬車，再倒回入口。
+
+每一輪（約 5 秒）：
+
+1. `GET /task/show` 取回所有待辦任務，逐筆處理。
+2. 前進，左側 IR 感測器每偵測到一次「白→黑」就記一個黑點，數到任務的車位 `id` 就停。
+3. 左轉進車格，前進到前方 IR 感測器被擋住為止。
+4. `P`（停車）放下伺服載台；`T`（取車）抬起。
+5. 倒車到後方 IR 感測器被擋住，邊倒邊轉回主車道，再倒回入口。
+6. `GET /task/clear/{serial}` 銷單。
+
+| 元件 | 腳位 |
+|---|---|
+| IR 感測器：左（數黑點）／前（到位）／後（倒車） | 14 ／ 27 ／ 12 |
+| 直流馬達 A（IN1, IN2） | 18, 5 |
+| 直流馬達 B（IN1, IN2） | 25, 26 |
+| 升降伺服馬達 | 32 |
+
+需要的函式庫：`WiFi`、`HTTPClient`（ESP32 內建）、`ArduinoJson`、`ESP32Servo`。
+
+**燒錄前要改三個佔位字串**：`<wifi-ssid>`、`<wifi-password>`、`<task-service-host>`（跑 task 服務那台的 IP）。
+比賽現場的網路設定不進版控。
+
+`firmware/sensor-tests/` 是當天拆開驗證各元件的小程式：
+
+| 草稿 | 驗什麼 |
+|---|---|
+| `count_dot` | IR 感測器數黑點與去抖動 |
+| `dist_test`、`dist_test2` | 單顆 HC-SR04 超音波測距 |
+| `parking_dist_detection`、`parking_dist_detection_with3` | 用超音波判斷車格有沒有車（< 5 cm 有車、< 2 cm 太貼牆）；後者是左中右三顆 |
+| `wifi_try` | ESP32 連網與 HTTP GET |
 
 ## 資料模型
 
