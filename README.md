@@ -1,18 +1,18 @@
 # MakeNTU 2025 — 智慧自動停車場
 
-自動代客泊車系統。使用者送出「停車」或「取車」請求，系統決定用哪個車位，
-並把一張搬運任務交給機構端執行。MakeNTU 2025 企業獎第三名。
+MakeNTU 2025 智慧自動停車場專案。使用者送出停車或取車請求後，後端配置車位並建立搬運任務；
+ESP32 搬運車輪詢任務、依感測器辨識目標車格，完成動作後回報。作品獲友達光電企業獎第三名。
 
-## 這個 repo 的範圍
+## 專案內容
 
 | 目錄 | 是什麼 |
 |---|---|
-| `makentu15-*` | 後端。Spring Boot multi-module，Java + MySQL |
+| `makentu15-*` | 後端：Spring Boot 多模組服務，使用 Java 與 MySQL |
 | `firmware/` | 機構端。ESP32 搬運車韌體（Arduino 框架），見下方「機構端」 |
-| `prototype/` | 比賽初期用 C++ 寫的車位配置草稿，和後端 `parkCar()` 一樣是 first-fit |
+| `prototype/` | C++ 車位配置原型；與後端 `parkCar()` 同樣採 first-fit 策略 |
 
-語音辨識那一段**不在這個 repo**。
-後端與機構端的唯一介面是下面的 `request` 資料表：機構端透過 `GET /task/show` 輪詢待辦任務、做完後呼叫
+本儲存庫涵蓋停車後端、搬運車韌體與車位配置原型；語音辨識程式未收錄。
+後端與機構端以任務 API 互通：機構端透過 `GET /task/show` 輪詢待辦任務、做完後呼叫
 `GET /task/clear/{serial}` 銷單。後端不直接控制任何硬體。
 
 ## 架構
@@ -23,7 +23,7 @@
 |---|---|---|
 | `makentu15-parking` | 8081 | 車位配置。決定停哪一格、取哪一格，然後開任務單 |
 | `makentu15-task` | 8082 | 任務佇列。收單、驗證合法性、寫進 `request` 表、銷單 |
-| `makentu15-test` | 8079 | 試打外部服務用的空殼（`testGemini` 目前回空字串） |
+| `makentu15-test` | 8079 | 外部服務呼叫的實驗模組；`testGemini` 尚未實作回應 |
 | `makentu15-pojo` | — | 跨服務共用的實體：`CarInfo` / `ParkingSpace` / `Request` |
 | `makentu15-common` | — | 跨服務共用的回應包裝 `Result<T>` |
 
